@@ -72,19 +72,68 @@ export default {
               bytes[i] = binaryString.charCodeAt(i);
             }
 
-            // Return image response
-            return new Response(bytes, {
-              headers: {
-                "Content-Type": mimeType,
-                "Access-Control-Allow-Origin": "*",
-                "Cache-Control": "public, max-age=3600",
+            // Generate filename from prompt and timestamp
+            const timestamp = Date.now();
+            const fileExtension = mimeType.split("/")[1] || "png";
+            // Sanitize prompt for filename (remove special chars, limit length)
+            const sanitizedPrompt = prompt
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, "-")
+              .replace(/^-+|-+$/g, "")
+              .substring(0, 50);
+            const filename = `${sanitizedPrompt}-${timestamp}.${fileExtension}`;
+
+            // Upload to R2
+            await env.IMAGE_BUCKET.put(filename, bytes.buffer, {
+              httpMetadata: {
+                contentType: mimeType,
+              },
+              customMetadata: {
+                prompt: prompt,
+                timestamp: timestamp.toString(),
               },
             });
+
+            // Generate public URL
+            // Note: You need to enable public access on your R2 bucket
+            // Format: https://pub-{account_hash}.r2.dev/{filename}
+            // Or use your custom domain if configured
+            const bucketUrl = `https://pub-${
+              env.R2_PUBLIC_URL || "YOUR_R2_PUBLIC_URL"
+            }.r2.dev`;
+            const imageUrl = `${bucketUrl}/${filename}`;
+
+            // Return JSON response with URL
+            return new Response(
+              JSON.stringify({
+                success: true,
+                url: imageUrl,
+                filename: filename,
+                prompt: prompt,
+                timestamp: timestamp,
+                mimeType: mimeType,
+              }),
+              {
+                headers: {
+                  "Content-Type": "application/json",
+                  "Access-Control-Allow-Origin": "*",
+                },
+              }
+            );
           }
         }
       }
 
-      return new Response("No image generated", { status: 500 });
+      return new Response(
+        JSON.stringify({ success: false, error: "No image generated" }),
+        {
+          status: 500,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          },
+        }
+      );
     } catch (error) {
       console.error("Error:", error);
       return new Response(`Error: ${error.message}`, { status: 500 });

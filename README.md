@@ -6,6 +6,8 @@ A Cloudflare Workers serverless function that generates images using Google's Ge
 
 - ✨ Generate images using Gemini AI
 - 🚀 Deploy as a serverless function on Cloudflare Workers
+- 📦 Automatic storage in Cloudflare R2
+- 🔗 Returns public URLs to generated images
 - 🔒 Secure API key management
 - 🌐 CORS enabled for web applications
 - ⚡ Fast and scalable
@@ -15,6 +17,7 @@ A Cloudflare Workers serverless function that generates images using Google's Ge
 - Node.js and npm installed
 - A Cloudflare account
 - A Google Gemini API key (stored in `NANOBANANA_API_KEY`)
+- A Cloudflare R2 bucket (name: `crave-buddy-images`)
 
 ## Setup
 
@@ -64,13 +67,39 @@ The `prompt` field is **required**. If missing, the function will return a 400 e
 
 ## Deployment
 
-1. **Login to Cloudflare:**
+### 1. Create R2 Bucket
+
+First, create an R2 bucket named `crave-buddy-images`:
+
+```bash
+npx wrangler r2 bucket create crave-buddy-images
+```
+
+### 2. Enable Public Access on R2 Bucket
+
+Go to your Cloudflare Dashboard:
+
+1. Navigate to **R2** → **crave-buddy-images**
+2. Go to **Settings** → **Public Access**
+3. Click **Allow Access** and confirm
+4. Copy the **Public R2.dev Bucket URL** (e.g., `https://pub-abc123def456.r2.dev`)
+
+### 3. Update wrangler.toml
+
+Edit `wrangler.toml` and set the `R2_PUBLIC_URL` variable:
+
+```toml
+[vars]
+R2_PUBLIC_URL = "abc123def456"  # The part between 'pub-' and '.r2.dev'
+```
+
+### 4. Login to Cloudflare
 
 ```bash
 npx wrangler login
 ```
 
-2. **Add your API key as a secret:**
+### 5. Add your API key as a secret
 
 ```bash
 npx wrangler secret put NANOBANANA_API_KEY
@@ -78,7 +107,7 @@ npx wrangler secret put NANOBANANA_API_KEY
 
 When prompted, paste your Gemini API key.
 
-3. **Deploy to Cloudflare Workers:**
+### 6. Deploy to Cloudflare Workers
 
 ```bash
 npm run deploy
@@ -88,7 +117,20 @@ Your function will be deployed and you'll receive a URL like: `https://crave-bud
 
 ## Response
 
-The function returns the generated image directly as a binary response with the appropriate `Content-Type` header (usually `image/png` or `image/jpeg`).
+The function returns a JSON response with the URL to the generated image stored in R2.
+
+### Response Format
+
+```json
+{
+  "success": true,
+  "url": "https://pub-abc123def456.r2.dev/pesto-pasta-1730000000000.png",
+  "filename": "pesto-pasta-1730000000000.png",
+  "prompt": "Pesto pasta",
+  "timestamp": 1730000000000,
+  "mimeType": "image/png"
+}
+```
 
 ### Example: Using in a Web Application
 
@@ -102,11 +144,15 @@ async function generateImage(prompt) {
     body: JSON.stringify({ prompt }),
   });
 
-  const blob = await response.blob();
-  const imageUrl = URL.createObjectURL(blob);
+  const data = await response.json();
 
-  // Use the image URL
-  document.getElementById("myImage").src = imageUrl;
+  if (data.success) {
+    // Use the image URL directly
+    document.getElementById("myImage").src = data.url;
+    console.log("Image URL:", data.url);
+  } else {
+    console.error("Error:", data.error);
+  }
 }
 
 generateImage("A cute puppy");
@@ -118,6 +164,8 @@ Edit `wrangler.toml` to customize your deployment settings:
 
 - `name`: The name of your worker
 - `compatibility_date`: The Cloudflare Workers compatibility date
+- `R2_PUBLIC_URL`: Your R2 bucket's public URL subdomain
+- `IMAGE_BUCKET`: The R2 bucket binding (default: `crave-buddy-images`)
 
 ## API Reference
 
@@ -127,6 +175,22 @@ Currently using: `gemini-2.5-flash-image`
 
 You can modify the model in `index.js` if needed.
 
+## Storage
+
+Generated images are stored in Cloudflare R2 with the following naming convention:
+
+```
+{sanitized-prompt}-{timestamp}.{extension}
+```
+
+Example: `pesto-pasta-1730000000000.png`
+
+Images are stored with metadata including:
+
+- Original prompt
+- Generation timestamp
+- Content type
+
 ## Error Handling
 
 The function includes error handling for:
@@ -134,8 +198,9 @@ The function includes error handling for:
 - Missing API key
 - API request failures
 - Image generation failures
+- R2 upload failures
 
-Errors are returned with appropriate HTTP status codes and messages.
+Errors are returned with appropriate HTTP status codes and messages in JSON format.
 
 ## License
 

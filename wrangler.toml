@@ -6,5 +6,12 @@ compatibility_date = "2024-01-01"
 # For production: Add your API key as a secret using: wrangler secret put NANOBANANA_API_KEY
 # For local development: wrangler will use your existing .env file
 [vars]
-# Add any non-secret environment variables here
+# Add your R2 public URL subdomain (the part after 'pub-' and before '.r2.dev')
+# Example: if your R2 public URL is https://pub-abc123def456.r2.dev, set R2_PUBLIC_URL = "abc123def456"
+R2_PUBLIC_URL = "YOUR_R2_PUBLIC_URL"
+
+# R2 Bucket binding
+[[r2_buckets]]
+binding = "IMAGE_BUCKET"
+bucket_name = "crave-buddy-images"
 
