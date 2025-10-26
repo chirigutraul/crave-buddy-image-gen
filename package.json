@@ -1,0 +1,34 @@
+{
+  "name": "crave-buddy-image-gen",
+  "version": "1.0.0",
+  "description": "Cloudflare Workers function for generating images with Gemini AI",
+  "main": "index.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chirigutraul/crave-buddy-image-gen.git"
+  },
+  "keywords": [
+    "cloudflare",
+    "workers",
+    "gemini",
+    "ai",
+    "image-generation"
+  ],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/chirigutraul/crave-buddy-image-gen/issues"
+  },
+  "homepage": "https://github.com/chirigutraul/crave-buddy-image-gen#readme",
+  "devDependencies": {
+    "wrangler": "^3.114.15"
+  },
+  "dependencies": {
+    "@google/genai": "^1.27.0"
+  }
+}

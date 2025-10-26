@@ -1,0 +1,10 @@
+name = "crave-buddy-image-gen"
+main = "index.js"
+compatibility_date = "2024-01-01"
+
+# Environment variables configuration
+# For production: Add your API key as a secret using: wrangler secret put NANOBANANA_API_KEY
+# For local development: wrangler will use your existing .env file
+[vars]
+# Add any non-secret environment variables here
+
